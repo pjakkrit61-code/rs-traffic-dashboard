@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <!-- Mobile Optimized Viewport -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- PWA / Mobile App Meta Tags -->
+    <meta name="theme-color" content="#111827">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="RS Traffic">
+    
+    <!-- Security: Content Security Policy (CSP) & Referrer -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com; img-src 'self' data: https://placehold.co; connect-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com;">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+
+    <title>Utility Dashboard - RS Traffic Co., Ltd.</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background-color: #f3f4f6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        /* Custom scrollbar for desktop */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #c1c1c1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8; 
+        }
+        /* Mobile specific optimizations */
+        .mobile-scroll-container {
+            -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+        @media (max-width: 768px) {
+            .chart-container {
+                height: 250px; /* Slightly shorter charts on mobile to fit screen */
+            }
+        }
+        /* Touch target adjustments */
+        input[type="checkbox"] {
+            min-width: 24px;
+            min-height: 24px;
+        }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden bg-gray-100 text-gray-800">
+
+    <!-- Sidebar (Desktop) -->
+    <aside class="w-64 bg-gray-900 text-white flex-col hidden md:flex transition-all duration-300 shadow-2xl z-20">
+        <div class="p-6 flex flex-col items-center justify-center border-b border-gray-800 bg-gray-900">
+            <div class="flex items-center mb-2">
+                <i class="fas fa-traffic-light text-green-500 text-3xl mr-3 filter drop-shadow-[0_0_8px_rgba(34,197,94,0.5)]"></i>
+                <h1 class="text-3xl font-black tracking-wider text-green-500">RS<span class="text-white"> TRAFFIC</span></h1>
+            </div>
+            <p class="text-xs text-gray-400 text-center font-medium uppercase tracking-widest mt-1">บริษัท อาร์เอส ทราฟฟิค จำกัด</p>
+        </div>
+        
+        <div class="flex-1 overflow-y-auto py-6 mobile-scroll-container">
+            <div class="px-6 mb-6">
+                <p class="text-xs uppercase text-gray-500 font-bold tracking-widest mb-3">Filters</p>
+                <div class="space-y-2" id="sidebar-filters">
+                    <!-- Filters will be generated here by JS -->
+                </div>
+            </div>
+            
+            <ul class="space-y-1">
+                <li>
+                    <a href="#" class="flex items-center px-6 py-3 bg-gray-800 text-blue-400 border-l-4 border-blue-500 hover:bg-gray-700 transition-colors">
+                        <i class="fas fa-home w-5 mr-3 text-lg"></i> Dashboard
+                    </a>
+                </li>
+                <li>
+                    <a href="#dataTable" class="flex items-center px-6 py-3 text-gray-400 border-l-4 border-transparent hover:bg-gray-800 hover:text-white transition-colors">
+                        <i class="fas fa-table w-5 mr-3 text-lg"></i> Data Table
+                    </a>
+                </li>
+            </ul>
+        </div>
+        
+        <div class="p-4 border-t border-gray-800 bg-gray-900 text-xs text-gray-500 text-center font-medium">
+            ปีงบประมาณ 2569
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col h-screen overflow-hidden relative">
+        
+        <!-- Mobile Header -->
+        <header class="md:hidden bg-gray-900 text-white p-4 flex justify-between items-center z-30 shadow-lg safe-area-pt">
+            <div class="flex items-center">
+                <i class="fas fa-traffic-light text-green-500 mr-3 text-2xl drop-shadow-[0_0_5px_rgba(34,197,94,0.5)]"></i>
+                <h1 class="text-xl font-black tracking-wider text-green-500">RS<span class="text-white"> TRAFFIC</span></h1>
+            </div>
+            <button id="mobile-menu-btn" class="text-gray-300 hover:text-white focus:outline-none p-2 rounded-lg hover:bg-gray-800 transition-colors" aria-label="Toggle menu">
+                <i class="fas fa-bars text-2xl"></i>
+            </button>
+        </header>
+
+        <!-- Mobile Filter Panel (Slide down animation) -->
+        <div id="mobile-filter-panel" class="md:hidden bg-gray-800 text-white absolute w-full top-[-100%] left-0 z-20 shadow-xl transition-all duration-300 ease-in-out pb-4 pt-20 px-4">
+             <div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-2">
+                 <p class="text-sm uppercase text-gray-400 font-bold tracking-widest">เลือกข้อมูลที่ต้องการแสดง</p>
+                 <button id="mobile-close-btn" class="text-gray-400 hover:text-white p-1">
+                     <i class="fas fa-times text-xl"></i>
+                 </button>
+             </div>
+             <div class="flex flex-col gap-3" id="mobile-filters">
+                <!-- Mobile filters generated by JS -->
+             </div>
+        </div>
+
+        <!-- Scrollable Content -->
+        <div id="main-scroll-area" class="flex-1 overflow-y-auto p-4 md:p-8 mobile-scroll-container">
+            
+            <!-- Page Title -->
+            <div class="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div>
+                    <h2 class="text-3xl font-bold text-gray-900 tracking-tight">สรุปค่าใช้จ่ายสาธารณูปโภค</h2>
+                    <p class="text-blue-600 font-medium mt-1">ปีงบประมาณ 2569</p>
+                </div>
+                <div class="bg-white px-4 py-2.5 rounded-lg shadow-sm border border-gray-200 flex items-center justify-center text-sm text-gray-600 h-fit">
+                    <i class="fas fa-calendar-alt text-blue-500 mr-2 text-lg"></i>
+                    <span>อัปเดตข้อมูลล่าสุด: <b>ตุลาคม 2569</b></span>
+                </div>
+            </div>
+
+            <!-- Summary Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+                <!-- Total Expense -->
+                <div class="bg-gradient-to-br from-green-600 to-emerald-800 rounded-2xl shadow-lg p-6 text-white transform transition duration-300 hover:shadow-xl relative overflow-hidden">
+                    <div class="absolute -right-6 -top-6 text-green-400 opacity-20 text-7xl">
+                        <i class="fas fa-building-columns"></i>
+                    </div>
+                    <div class="relative z-10">
+                        <p class="text-green-50 text-sm font-medium mb-1">รวมยอดค่าใช้จ่ายสุทธิ (YTD)</p>
+                        <div class="flex items-baseline">
+                            <p class="text-3xl md:text-4xl font-bold" id="card-total">0</p>
+                            <span class="ml-2 text-green-100 text-sm font-medium">บาท</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Average Monthly -->
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col justify-center transform transition duration-300 hover:shadow-md relative overflow-hidden">
+                    <div class="absolute -right-4 -bottom-4 text-green-50 opacity-50 text-7xl">
+                        <i class="fas fa-chart-pie"></i>
+                    </div>
+                    <div class="flex items-center mb-3 relative z-10">
+                        <div class="rounded-lg bg-green-50 p-2 mr-3">
+                            <i class="fas fa-calculator text-green-600"></i>
+                        </div>
+                        <p class="text-sm text-gray-500 font-semibold">ค่าเฉลี่ยรายเดือน</p>
+                    </div>
+                    <div class="flex items-baseline relative z-10">
+                        <p class="text-2xl font-bold text-gray-800" id="card-avg">0</p>
+                        <span class="ml-2 text-gray-500 text-sm font-medium">บาท</span>
+                    </div>
+                </div>
+
+                <!-- Highest Month -->
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col justify-center transform transition duration-300 hover:shadow-md relative overflow-hidden">
+                     <div class="absolute -right-4 -bottom-4 text-red-50 opacity-50 text-7xl">
+                        <i class="fas fa-arrow-trend-up"></i>
+                    </div>
+                    <div class="flex items-center mb-3 relative z-10">
+                        <div class="rounded-lg bg-red-50 p-2 mr-3">
+                            <i class="fas fa-calendar-day text-red-500"></i>
+                        </div>
+                        <p class="text-sm text-gray-500 font-semibold">ยอดชำระสูงสุดรายเดือน</p>
+                    </div>
+                    <div class="flex items-end justify-between relative z-10">
+                        <p class="text-xl font-bold text-gray-800" id="card-highest-month">-</p>
+                        <p class="text-sm font-bold text-red-600 bg-red-50 px-2.5 py-1.5 rounded-lg border border-red-100" id="card-highest-val">0 ฿</p>
+                    </div>
+                </div>
+
+                <!-- PWA Share (Example) -->
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col justify-center transform transition duration-300 hover:shadow-md relative overflow-hidden">
+                     <div class="absolute -right-4 -bottom-4 text-purple-50 opacity-50 text-7xl">
+                        <i class="fas fa-bolt"></i>
+                    </div>
+                    <div class="flex items-center mb-3 relative z-10">
+                        <div class="rounded-lg bg-purple-50 p-2 mr-3">
+                            <i class="fas fa-bolt text-purple-500"></i>
+                        </div>
+                        <p class="text-sm text-gray-500 font-semibold">สัดส่วนค่าไฟฟ้า (PEA)</p>
+                    </div>
+                    <div class="flex items-center relative z-10">
+                        <p class="text-3xl font-bold text-gray-800 min-w-[70px]" id="card-pea-percent">0%</p>
+                        <div class="ml-3 w-full bg-gray-100 rounded-full h-2.5 shadow-inner">
+                            <div class="bg-gradient-to-r from-purple-400 to-purple-600 h-2.5 rounded-full transition-all duration-1000" id="pea-progress-bar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Section 1 -->
+            <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-8">
+                <!-- Bar Chart: Monthly by Category -->
+                <div class="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100 xl:col-span-2">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                        <i class="fas fa-chart-column text-blue-500 mr-2"></i> แนวโน้มค่าใช้จ่ายรายเดือน
+                    </h3>
+                    <div class="chart-container">
+                        <canvas id="monthlyBarChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Doughnut Chart: Total by Category -->
+                <div class="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                        <i class="fas fa-chart-pie text-blue-500 mr-2"></i> สัดส่วนค่าใช้จ่ายทั้งหมด
+                    </h3>
+                    <div class="chart-container flex-1 flex justify-center items-center min-h-[220px]">
+                        <canvas id="categoryDoughnutChart"></canvas>
+                    </div>
+                    <div id="doughnut-legend" class="mt-6 flex flex-col gap-2 text-sm w-full">
+                        <!-- Custom legend will be injected here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Section 2 -->
+            <div class="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100 mb-8">
+                <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                    <i class="fas fa-chart-line text-blue-500 mr-2"></i> ภาพรวมค่าใช้จ่ายทุกประเภท (เปรียบเทียบรายเดือน)
+                </h3>
+                <div class="chart-container" style="height: 250px;">
+                    <canvas id="totalTrendChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Data Table -->
+            <div id="dataTable" class="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100 mb-8 overflow-hidden">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                    <div>
+                        <h3 class="text-xl font-bold text-gray-800 flex items-center">
+                            <i class="fas fa-table-list text-blue-500 mr-2"></i> ตารางแสดงรายละเอียดข้อมูล
+                        </h3>
+                        <p class="text-sm text-gray-500 mt-1"><i class="fas fa-info-circle mr-1"></i> ยอดชำระสุทธิรวมภาษีมูลค่าเพิ่ม (VAT 7%) เรียบร้อยแล้ว</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2 w-full md:w-auto">
+                        <button id="printBtn" class="flex-1 md:flex-none bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center justify-center shadow-sm">
+                            <i class="fas fa-print mr-2 text-gray-500"></i> พิมพ์เอกสาร
+                        </button>
+                        <button id="exportBtn" class="flex-1 md:flex-none bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center justify-center shadow-sm">
+                            <i class="fas fa-file-excel mr-2"></i> ส่งออก (CSV)
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="overflow-x-auto rounded-xl border border-gray-200 shadow-inner mobile-scroll-container">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-4 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider whitespace-nowrap bg-gray-100 border-r border-gray-200">เดือน</th>
+                                <th scope="col" class="px-4 py-4 text-right text-xs font-bold text-blue-700 uppercase tracking-wider bg-blue-50 PWA-col border-r border-gray-200 whitespace-nowrap"><i class="fas fa-droplet mr-1"></i> กปภ.</th>
+                                <th scope="col" class="px-4 py-4 text-right text-xs font-bold text-purple-700 uppercase tracking-wider bg-purple-50 PEA-col border-r border-gray-200 whitespace-nowrap"><i class="fas fa-bolt mr-1"></i> กฟภ.</th>
+                                <th scope="col" class="px-4 py-4 text-right text-xs font-bold text-teal-700 uppercase tracking-wider bg-teal-50 AISF-col border-r border-gray-200 whitespace-nowrap"><i class="fas fa-wifi mr-1"></i> AIS Fibre</th>
+                                <th scope="col" class="px-4 py-4 text-right text-xs font-bold text-green-700 uppercase tracking-wider bg-green-50 AISM-col border-r border-gray-200 whitespace-nowrap"><i class="fas fa-mobile-alt mr-1"></i> AIS Mobile</th>
+                                <th scope="col" class="px-4 py-4 text-right text-xs font-bold text-red-700 uppercase tracking-wider bg-red-50 TRUE-col border-r border-gray-200 whitespace-nowrap"><i class="fas fa-sim-card mr-1"></i> True/Dtac</th>
+                                <th scope="col" class="px-4 py-4 text-right text-xs font-black text-gray-800 uppercase tracking-wider bg-gray-200 shadow-inner whitespace-nowrap">รวมสุทธิ (บาท)</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-100" id="table-body">
+                            <!-- Table rows generated by JS -->
+                        </tbody>
+                        <tfoot class="bg-gray-50 font-bold border-t-2 border-gray-300 shadow-inner" id="table-footer">
+                            <!-- Footer generated by JS -->
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+        
+        <!-- Mobile Overlay -->
+        <div id="mobile-overlay" class="md:hidden fixed inset-0 bg-black bg-opacity-50 z-10 hidden transition-opacity duration-300 opacity-0"></div>
+    </main>
+
+    <script>
+        // Wrapped in an IIFE (Immediately Invoked Function Expression) for security
+        // This prevents global variables from being modified via the browser console by malicious scripts
+        (function() {
+            'use strict';
+
+            // Data parsed directly from the provided PDF context (Total including VAT)
+            const rawData = [
+                { month: 'มกราคม', PWA: 9607.54, PEA: 19874.18, AIS_Fibre: 715.83, AIS_Mobile: 1282.93, True_Dtac: 0.00 },
+                { month: 'กุมภาพันธ์', PWA: 10504.19, PEA: 13941.08, AIS_Fibre: 1399.25, AIS_Mobile: 1285.61, True_Dtac: 0.00 },
+                { month: 'มีนาคม', PWA: 8792.73, PEA: 3949.73, AIS_Fibre: 1357.83, AIS_Mobile: 1282.93, True_Dtac: 0.00 },
+                { month: 'เมษายน', PWA: 4512.19, PEA: 9537.20, AIS_Fibre: 1357.83, AIS_Mobile: 1282.93, True_Dtac: 0.00 },
+                { month: 'พฤษภาคม', PWA: 4074.03, PEA: 8878.20, AIS_Fibre: 1357.83, AIS_Mobile: 1350.34, True_Dtac: 0.00 },
+                { month: 'มิถุนายน', PWA: 3467.34, PEA: 7249.79, AIS_Fibre: 1357.83, AIS_Mobile: 1533.31, True_Dtac: 0.00 },
+                { month: 'กรกฎาคม', PWA: 3433.63, PEA: 6317.85, AIS_Fibre: 1357.83, AIS_Mobile: 1629.61, True_Dtac: 0.00 },
+                { month: 'สิงหาคม', PWA: 5608.41, PEA: 3335.69, AIS_Fibre: 1357.83, AIS_Mobile: 3370.26, True_Dtac: 3049.82 },
+                { month: 'กันยายน', PWA: 2855.30, PEA: 3359.36, AIS_Fibre: 1357.83, AIS_Mobile: 665.06, True_Dtac: 1279.72 },
+                { month: 'ตุลาคม', PWA: 2015.02, PEA: 0.00, AIS_Fibre: 0.00, AIS_Mobile: 0.00, True_Dtac: 0.00 }
+            ];
+
+            const months = rawData.map(d => d.month);
+
+            // Providers definition with colors
+            const providers = [
+                { id: 'PWA', name: 'การประปา (PWA)', icon: 'fas fa-droplet', colClass: 'PWA-col', color: 'rgba(54, 162, 235, 0.85)', border: 'rgba(54, 162, 235, 1)', tailwindText: 'text-blue-600', tailwindBg: 'bg-blue-50' },
+                { id: 'PEA', name: 'การไฟฟ้า (PEA)', icon: 'fas fa-bolt', colClass: 'PEA-col', color: 'rgba(153, 102, 255, 0.85)', border: 'rgba(153, 102, 255, 1)', tailwindText: 'text-purple-600', tailwindBg: 'bg-purple-50' },
+                { id: 'AIS_Fibre', name: 'AIS Fibre', icon: 'fas fa-wifi', colClass: 'AISF-col', color: 'rgba(20, 184, 166, 0.85)', border: 'rgba(20, 184, 166, 1)', tailwindText: 'text-teal-600', tailwindBg: 'bg-teal-50' },
+                { id: 'AIS_Mobile', name: 'AIS Mobile', icon: 'fas fa-mobile-alt', colClass: 'AISM-col', color: 'rgba(34, 197, 94, 0.85)', border: 'rgba(34, 197, 94, 1)', tailwindText: 'text-green-600', tailwindBg: 'bg-green-50' },
+                { id: 'True_Dtac', name: 'True/Dtac', icon: 'fas fa-sim-card', colClass: 'TRUE-col', color: 'rgba(239, 68, 68, 0.85)', border: 'rgba(239, 68, 68, 1)', tailwindText: 'text-red-600', tailwindBg: 'bg-red-50' }
+            ];
+
+            // State for filters (all true by default)
+            let activeFilters = {
+                'PWA': true,
+                'PEA': true,
+                'AIS_Fibre': true,
+                'AIS_Mobile': true,
+                'True_Dtac': true
+            };
+
+            // Chart instances
+            let monthlyBarChart, categoryDoughnutChart, totalTrendChart;
+
+            const formatMoney = (amount) => {
+                return new Intl.NumberFormat('th-TH', { style: 'decimal', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
+            };
+
+            const calculateFilteredData = () => {
+                let processedData = rawData.map(row => {
+                    let newRow = { month: row.month };
+                    let rowTotal = 0;
+                    providers.forEach(p => {
+                        if (activeFilters[p.id]) {
+                            newRow[p.id] = row[p.id];
+                            rowTotal += row[p.id];
+                        } else {
+                            newRow[p.id] = 0;
+                        }
+                    });
+                    newRow.total = rowTotal;
+                    return newRow;
+                });
+                return processedData;
+            };
+
+            const renderFilters = () => {
+                const sidebarContainer = document.getElementById('sidebar-filters');
+                const mobileContainer = document.getElementById('mobile-filters');
+                
+                // Clear existing content to prevent memory leaks from old listeners if any
+                sidebarContainer.innerHTML = '';
+                mobileContainer.innerHTML = '';
+
+                providers.forEach(p => {
+                    const checkedAttr = activeFilters[p.id] ? 'checked' : '';
+                    
+                    // Sidebar item (Desktop)
+                    // Note: Removed inline onchange. Added class filter-checkbox-input and data-filter-id for Event Delegation
+                    const sidebarHtml = `
+                        <label class="flex items-center space-x-3 p-2.5 rounded-xl hover:bg-gray-800 cursor-pointer transition-all group">
+                            <div class="relative flex items-center">
+                                <input type="checkbox" class="peer sr-only filter-checkbox-input" data-filter-id="${p.id}" ${checkedAttr}>
+                                <div class="w-6 h-6 border-2 border-gray-600 rounded flex items-center justify-center transition-all shadow-inner
+                                            ${activeFilters[p.id] ? 'bg-blue-600 border-blue-600' : 'bg-gray-900'} 
+                                            peer-focus:ring-2 peer-focus:ring-blue-400 peer-focus:ring-offset-2 peer-focus:ring-offset-gray-900">
+                                    <svg class="w-4 h-4 text-white ${activeFilters[p.id] ? 'opacity-100 scale-100' : 'opacity-0 scale-50'} transition-all duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="flex items-center flex-1">
+                                <div class="w-8 flex justify-center">
+                                    <i class="${p.icon} text-lg transition-all duration-300" style="color: ${activeFilters[p.id] ? p.border : '#4b5563'}; text-shadow: ${activeFilters[p.id] ? '0 0 8px '+p.color : 'none'};"></i>
+                                </div>
+                                <span class="text-sm font-medium transition-colors duration-300 ${activeFilters[p.id] ? 'text-white' : 'text-gray-500 group-hover:text-gray-300'}">${p.name}</span>
+                            </div>
+                        </label>
+                    `;
+                    
+                    // Mobile item (Card style with large tap target)
+                    const mobileHtml = `
+                        <label class="cursor-pointer block w-full touch-manipulation">
+                            <input type="checkbox" class="sr-only filter-checkbox-input" data-filter-id="${p.id}" ${checkedAttr}>
+                            <div class="flex items-center justify-between p-4 rounded-xl border-2 transition-all active:scale-[0.98]
+                                        ${activeFilters[p.id] ? 'bg-gray-700 border-blue-500' : 'bg-gray-800 border-gray-700'}">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-10 h-10 rounded-full flex items-center justify-center bg-gray-900">
+                                        <i class="${p.icon} text-xl" style="color: ${activeFilters[p.id] ? p.border : '#4b5563'}"></i>
+                                    </div>
+                                    <span class="text-base font-medium ${activeFilters[p.id] ? 'text-white' : 'text-gray-400'}">${p.name}</span>
+                                </div>
+                                <div class="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors
+                                            ${activeFilters[p.id] ? 'border-blue-500 bg-blue-500' : 'border-gray-500 bg-transparent'}">
+                                    <i class="fas fa-check text-white text-xs ${activeFilters[p.id] ? 'opacity-100' : 'opacity-0'}"></i>
+                                </div>
+                            </div>
+                        </label>
+                    `;
+
+                    sidebarContainer.insertAdjacentHTML('beforeend', sidebarHtml);
+                    mobileContainer.insertAdjacentHTML('beforeend', mobileHtml);
+                });
+            };
+
+            const updateSummaryCards = (data) => {
+                let totalOverall = 0;
+                let highestMonth = { month: '-', val: 0 };
+                let totalsByProvider = { PWA:0, PEA:0, AIS_Fibre:0, AIS_Mobile:0, True_Dtac:0 };
+
+                data.forEach(row => {
+                    totalOverall += row.total;
+                    if(row.total > highestMonth.val) {
+                        highestMonth = { month: row.month, val: row.total };
+                    }
+                    providers.forEach(p => totalsByProvider[p.id] += row[p.id]);
+                });
+
+                let activeMonthsCount = data.filter(r => r.total > 0).length;
+                let avg = activeMonthsCount > 0 ? totalOverall / activeMonthsCount : 0;
+
+                document.getElementById('card-total').innerText = formatMoney(totalOverall);
+                document.getElementById('card-avg').innerText = formatMoney(avg);
+                document.getElementById('card-highest-month').innerText = highestMonth.month;
+                document.getElementById('card-highest-val').innerText = formatMoney(highestMonth.val) + ' ฿';
+
+                let peaPercent = totalOverall > 0 ? (totalsByProvider['PEA'] / totalOverall) * 100 : 0;
+                document.getElementById('card-pea-percent').innerText = peaPercent.toFixed(1) + '%';
+                document.getElementById('pea-progress-bar').style.width = peaPercent + '%';
+            };
+
+            const updateTable = (data) => {
+                const tbody = document.getElementById('table-body');
+                const tfoot = document.getElementById('table-footer');
+                tbody.innerHTML = '';
+                
+                let sums = { PWA: 0, PEA: 0, AIS_Fibre: 0, AIS_Mobile: 0, True_Dtac: 0, total: 0 };
+
+                providers.forEach(p => {
+                    const cols = document.querySelectorAll(`.${p.colClass}`);
+                    cols.forEach(col => {
+                        col.style.display = activeFilters[p.id] ? '' : 'none';
+                    });
+                });
+
+                data.forEach(row => {
+                    sums.total += row.total;
+                    providers.forEach(p => sums[p.id] += row[p.id]);
+
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-blue-50 transition-colors group cursor-default';
+                    
+                    let tdHtml = `<td class="px-4 py-4 whitespace-nowrap text-sm font-semibold text-gray-700 border-r border-gray-100">${row.month}</td>`;
+                    
+                    providers.forEach(p => {
+                        let valueText = row[p.id] === 0 ? '<span class="text-gray-300">-</span>' : formatMoney(row[p.id]);
+                        tdHtml += `<td class="px-4 py-4 whitespace-nowrap text-sm text-right ${p.tailwindText} ${p.colClass} border-r border-gray-100 group-hover:${p.tailwindBg}" style="display: ${activeFilters[p.id] ? '' : 'none'}">${valueText}</td>`;
+                    });
+                    
+                    tdHtml += `<td class="px-4 py-4 whitespace-nowrap text-sm text-right font-bold text-gray-900 bg-gray-50 border-l-2 border-gray-200 group-hover:bg-blue-100 transition-colors">${formatMoney(row.total)}</td>`;
+                    
+                    // We use innerHTML here but it's safe because data is hardcoded and controlled.
+                    tr.innerHTML = tdHtml;
+                    tbody.appendChild(tr);
+                });
+
+                let footerHtml = `<tr><td class="px-4 py-5 whitespace-nowrap text-sm font-black text-gray-900 uppercase border-r border-gray-300 bg-gray-200">รวมทั้งสิ้น</td>`;
+                providers.forEach(p => {
+                    footerHtml += `<td class="px-4 py-5 whitespace-nowrap text-sm text-right font-black ${p.tailwindText} ${p.colClass} border-r border-gray-300" style="display: ${activeFilters[p.id] ? '' : 'none'}">${formatMoney(sums[p.id])}</td>`;
+                });
+                footerHtml += `<td class="px-4 py-5 whitespace-nowrap text-base text-right font-black text-blue-800 bg-blue-100 border-l-2 border-blue-200 shadow-inner">${formatMoney(sums.total)}</td></tr>`;
+                tfoot.innerHTML = footerHtml;
+            };
+
+            const updateCharts = (data) => {
+                const labels = data.map(d => d.month);
+                
+                // Set default font for Chart.js
+                Chart.defaults.font.family = "'Sarabun', sans-serif";
+                
+                // 1. Bar Chart
+                const barDatasets = providers.filter(p => activeFilters[p.id]).map(p => {
+                    return {
+                        label: p.name,
+                        data: data.map(d => d[p.id]),
+                        backgroundColor: p.color,
+                        borderColor: p.border,
+                        borderWidth: 1,
+                        borderRadius: 4,
+                        stack: 'Stack 0'
+                    };
+                });
+
+                if (monthlyBarChart) monthlyBarChart.destroy();
+                const ctxBar = document.getElementById('monthlyBarChart').getContext('2d');
+                monthlyBarChart = new Chart(ctxBar, {
+                    type: 'bar',
+                    data: { labels: labels, datasets: barDatasets },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { 
+                            tooltip: { mode: 'index', intersect: false, titleFont: {size: 14}, bodyFont: {size: 13}, padding: 10 },
+                            legend: { display: false } // Hide default, we rely on sidebar or color knowledge
+                        },
+                        scales: {
+                            x: { stacked: true, grid: { display: false } },
+                            y: { stacked: true, beginAtZero: true, 
+                                 grid: { color: '#f3f4f6' },
+                                 ticks: { callback: function(value) { return value.toLocaleString() + ' ฿'; } }
+                               }
+                        }
+                    }
+                });
+
+                // 2. Doughnut Chart
+                let totalsByProvider = { PWA:0, PEA:0, AIS_Fibre:0, AIS_Mobile:0, True_Dtac:0 };
+                let totalSum = 0;
+                data.forEach(row => {
+                    providers.forEach(p => {
+                        totalsByProvider[p.id] += row[p.id];
+                        totalSum += row[p.id];
+                    });
+                });
+
+                const activeProviders = providers.filter(p => activeFilters[p.id]);
+                const pieData = activeProviders.map(p => totalsByProvider[p.id]);
+                const pieColors = activeProviders.map(p => p.color);
+                const pieBorders = activeProviders.map(p => p.border);
+                const pieLabels = activeProviders.map(p => p.name);
+
+                if (categoryDoughnutChart) categoryDoughnutChart.destroy();
+                const ctxDoughnut = document.getElementById('categoryDoughnutChart').getContext('2d');
+                
+                if(totalSum === 0) {
+                     categoryDoughnutChart = new Chart(ctxDoughnut, {
+                        type: 'doughnut',
+                        data: { labels: ['No Data'], datasets: [{ data: [1], backgroundColor: ['#f3f4f6'] }] },
+                        options: { responsive: true, maintainAspectRatio: false, plugins: { tooltip: {enabled: false}, legend: {display: false} } }
+                     });
+                     document.getElementById('doughnut-legend').innerHTML = '<p class="text-center text-gray-400 bg-gray-50 py-4 rounded-lg">ไม่มีข้อมูลให้แสดง</p>';
+                } else {
+                    categoryDoughnutChart = new Chart(ctxDoughnut, {
+                        type: 'doughnut',
+                        data: { labels: pieLabels, datasets: [{ data: pieData, backgroundColor: pieColors, borderColor: pieBorders, borderWidth: 2, hoverOffset: 5 }] },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            cutout: '70%',
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            let label = context.label || '';
+                                            if (label) label += ': ';
+                                            if (context.parsed !== null) {
+                                                label += formatMoney(context.parsed) + ' ฿';
+                                                let percentage = ((context.parsed / totalSum) * 100).toFixed(1) + '%';
+                                                label += ` (${percentage})`;
+                                            }
+                                            return label;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+
+                    let legendHtml = '';
+                    activeProviders.forEach((p, i) => {
+                        let percent = ((pieData[i] / totalSum) * 100).toFixed(1);
+                        legendHtml += `
+                            <div class="flex justify-between items-center px-4 py-2.5 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors">
+                                <div class="flex items-center">
+                                    <span class="w-3.5 h-3.5 rounded-full inline-block mr-3 shadow-sm border border-white" style="background-color: ${p.border}"></span>
+                                    <span class="font-semibold text-gray-700">${p.name}</span>
+                                </div>
+                                <div class="text-right flex items-center">
+                                    <span class="font-black text-gray-900">${formatMoney(pieData[i])}</span>
+                                    <span class="text-xs font-bold ml-3 w-12 text-center py-1 rounded bg-white shadow-sm text-gray-600 border border-gray-200">${percent}%</span>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    document.getElementById('doughnut-legend').innerHTML = legendHtml;
+                }
+
+                // 3. Line Chart
+                const trendData = data.map(d => d.total);
+                if (totalTrendChart) totalTrendChart.destroy();
+                const ctxLine = document.getElementById('totalTrendChart').getContext('2d');
+                totalTrendChart = new Chart(ctxLine, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'รวมค่าใช้จ่ายทั้งหมด',
+                            data: trendData,
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4,
+                            pointBackgroundColor: '#ffffff',
+                            pointBorderColor: '#3b82f6',
+                            pointBorderWidth: 2,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            pointHoverBackgroundColor: '#3b82f6',
+                            pointHoverBorderColor: '#ffffff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { 
+                            legend: { display: false },
+                            tooltip: { titleFont: {size: 14}, bodyFont: {size: 14, weight: 'bold'}, padding: 12, displayColors: false }
+                        },
+                        scales: {
+                            x: { grid: { display: false } },
+                            y: { 
+                                beginAtZero: true, 
+                                grid: { borderDash: [4, 4], color: '#e5e7eb' },
+                                ticks: { callback: function(value) { return value.toLocaleString() + ' ฿'; } } 
+                            }
+                        },
+                        interaction: { intersect: false, mode: 'index' },
+                    }
+                });
+            };
+
+            const refreshDashboard = () => {
+                const filteredData = calculateFilteredData();
+                renderFilters();
+                updateSummaryCards(filteredData);
+                updateTable(filteredData);
+                updateCharts(filteredData);
+            };
+
+            
+            // Event Delegation for Filters (Security improvement: no inline onchange)
+            document.addEventListener('change', function(e) {
+                if (e.target && e.target.classList.contains('filter-checkbox-input')) {
+                    const providerId = e.target.getAttribute('data-filter-id');
+                    if (providerId) {
+                        activeFilters[providerId] = e.target.checked;
+                        refreshDashboard();
+                    }
+                }
+            });
+
+            // Mobile menu logic
+            const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+            const mobileCloseBtn = document.getElementById('mobile-close-btn');
+            const mobilePanel = document.getElementById('mobile-filter-panel');
+            const overlay = document.getElementById('mobile-overlay');
+
+            const toggleMobileMenu = (show) => {
+                if (show) {
+                    mobilePanel.style.top = '0';
+                    overlay.classList.remove('hidden');
+                    // Small delay to allow display block to render before opacity transition
+                    setTimeout(() => overlay.classList.remove('opacity-0'), 10); 
+                    document.body.style.overflow = 'hidden'; // Prevent body scroll
+                } else {
+                    mobilePanel.style.top = '-100%';
+                    overlay.classList.add('opacity-0');
+                    setTimeout(() => overlay.classList.add('hidden'), 300);
+                    document.body.style.overflow = '';
+                }
+            };
+
+            mobileMenuBtn.addEventListener('click', () => toggleMobileMenu(true));
+            mobileCloseBtn.addEventListener('click', () => toggleMobileMenu(false));
+            overlay.addEventListener('click', () => toggleMobileMenu(false));
+
+            // Print Button Event (Security improvement: no inline onclick)
+            document.getElementById('printBtn').addEventListener('click', () => {
+                window.print();
+            });
+
+            // Export CSV Event (Security improvement: no inline onclick)
+            document.getElementById('exportBtn').addEventListener('click', () => {
+                const data = calculateFilteredData();
+                let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; 
+                
+                let headers = ['เดือน'];
+                providers.forEach(p => { if (activeFilters[p.id]) headers.push(p.name); });
+                headers.push('รวมสุทธิ (บาท)');
+                csvContent += headers.join(",") + "\r\n";
+
+                data.forEach(row => {
+                    let rowArray = [row.month];
+                    providers.forEach(p => { if (activeFilters[p.id]) rowArray.push(row[p.id]); });
+                    rowArray.push(row.total);
+                    csvContent += rowArray.join(",") + "\r\n";
+                });
+
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement("a");
+                link.setAttribute("href", encodedUri);
+                link.setAttribute("download", "RS_Traffic_Utility_Expenses_2569.csv");
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            });
+
+            // Initial Load
+            window.onload = () => {
+                refreshDashboard();
+            };
+
+        })(); // End of IIFE
+    </script>
+</body>
+</html>
